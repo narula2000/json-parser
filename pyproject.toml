@@ -1,0 +1,30 @@
+[project]
+name = "json-parser"
+version = "0.1.0"
+description = "This is a JSON praser to validate JSON file. This is done as part of the codingchallenges.fyi challenges"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pytest>=9.0.1",
+    "ruff>=0.14.7",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
