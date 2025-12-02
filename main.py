@@ -1,6 +1,12 @@
-def main():
-    print("Hello from json-parser!")
+import sys
+
+
+def main(argv=None):
+    print("Hello world")
+    sys.exit(0)
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    main(sys.argv[1:])
