@@ -28,6 +28,7 @@ def main(argv=None):
                 parsed_json = json_parser.parse()
             except JsonException as e:
                 print(e)
+                print()
                 sys.exit(1)
 
             print(parsed_json)
