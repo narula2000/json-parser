@@ -10,4 +10,6 @@ This help with lexical analysis and syntactic analysis.
 Lexical analysis is the process of dividing a sequence of characters into meaningful chunks, called tokens.
 Syntactic analysis (which is also sometimes referred to as parsing) is the process of analysing the list of tokens to match it to a formal grammar.
 
-As part of the validation we will be validating the files from [tests](./tests/)
+As part of the validation we will be validating the files from [tests](./tests/).
+
+The JSON validation files can be fetched from [here](http://www.json.org/JSON_checker/test.zip).
