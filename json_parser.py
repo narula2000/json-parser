@@ -126,21 +126,23 @@ class JsonParser:
 
             parsed_object = {}
             init = True
+            try:
+                while self._get_current_char() != "}":
+                    if not init:
+                        self._skip_white_spaces()
+                        self._process_comma()
+                        self._skip_white_spaces()
 
-            while self._get_current_char() != "}":
-                if not init:
+                    key = self._parse_string()
                     self._skip_white_spaces()
-                    self._process_comma()
+                    self._process_colon()
                     self._skip_white_spaces()
-
-                key = self._parse_string()
-                self._skip_white_spaces()
-                self._process_colon()
-                self._skip_white_spaces()
-                value = self._parse_json()
-                parsed_object[key] = value
-                self._skip_white_spaces()
-                init = False
+                    value = self._parse_json()
+                    parsed_object[key] = value
+                    self._skip_white_spaces()
+                    init = False
+            except IndexError:
+                raise JsonException("JSON missing closing object")
             self.index += 1
             return parsed_object
 
