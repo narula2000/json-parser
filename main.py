@@ -17,6 +17,8 @@ def main(argv=None):
         for file in arguments.files:
             if not os.path.isfile(file):
                 continue
+
+            print(f"Prasing: {file}")
             content = None
             with open(file) as reader:
                 content: str | None = reader.read()
@@ -26,10 +28,11 @@ def main(argv=None):
                 parsed_json = json_parser.parse()
             except JsonException as e:
                 print(e)
+                print()
                 sys.exit(1)
 
-            print(f"Prased: {file}")
             print(parsed_json)
+            print()
 
     sys.exit(0)
 

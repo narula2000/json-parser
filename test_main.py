@@ -1,3 +1,4 @@
+import glob
 import os
 
 import pytest
@@ -151,3 +152,34 @@ class TestStep4:
         with pytest.raises(SystemExit) as pytest_wrapped_e:
             main(test_args)
         assert pytest_wrapped_e.value.code == 1
+
+
+class TestJsonChecker:
+    TEST_DIR = "tests/json_checker"
+
+    @pytest.mark.parametrize(
+        "json_file",
+        glob.glob(os.path.join(TEST_DIR, "pass*.json")),
+        ids=lambda f: os.path.basename(f),
+    )
+    def test_pass_files(self, json_file):
+        """All pass*.json files should exit with code 0"""
+        with pytest.raises(SystemExit) as exc:
+            main([json_file])
+
+        assert exc.value.code == 0, f"Expected pass but failed: {json_file}"
+
+    @pytest.mark.parametrize(
+        "json_file",
+        glob.glob(os.path.join(TEST_DIR, "fail*.json")),
+        ids=lambda f: os.path.basename(f),
+    )
+    def test_fail_files(self, json_file):
+        """All fail*.json files should exit with code 1"""
+        if os.path.basename(json_file) == "fail18.json":
+            pytest.xfail("Ignore failure: software validate json object depth up to 1,000,000 recursion limit")
+
+        with pytest.raises(SystemExit) as exc:
+            main([json_file])
+
+        assert exc.value.code == 1, f"Expected fail but passed: {json_file}"
