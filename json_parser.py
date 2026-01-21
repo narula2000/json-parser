@@ -144,6 +144,30 @@ class JsonParser:
             self.index += 1
             return parsed_object
 
+    def _parse_array(self) -> list[Any] | None:
+        if self._get_current_char() == "[":
+            self.index += 1
+            self._skip_white_spaces()
+
+            array = []
+            init = True
+
+            try:
+                while self._get_current_char() != "]":
+                    if not init:
+                        self._process_comma()
+                        self._skip_white_spaces()
+                    value = self._parse_json()
+                    self._skip_white_spaces()
+                    array.append(value)
+                    init = False
+            except IndexError:
+                raise JsonException("JSON missing closing array")
+
+            self.index += 1
+
+            return array
+
     def _parse_keyword(self, keyword: str, value: bool | None) -> bool | None:
         to_check_keyword = self.content[self.index : self.index + len(keyword)]
         if to_check_keyword == keyword:
@@ -158,6 +182,8 @@ class JsonParser:
             parsed_json = self._parse_number()
         if parsed_json is None:
             parsed_json = self._parse_object()
+        if parsed_json is None:
+            parsed_json = self._parse_array()
         if parsed_json is None:
             parsed_json = self._parse_keyword(keyword="true", value=True)
         if parsed_json is None:
