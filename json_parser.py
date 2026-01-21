@@ -1,6 +1,10 @@
 from typing import Any
 
 
+WHITE_SPACES = [" ", "\t", "\n", "\r"]
+VALID_BACKSLASH_ESCAPE = ['"', "\\", "/", "b", "f", "n", "r", "t"]
+
+
 class JsonException(Exception):
     def __init__(self, message: str) -> None:
         self.message = message
@@ -17,7 +21,7 @@ class JsonParser:
         self.index: int = 0
 
     def _is_white_space(self, char: str) -> bool:
-        return char in [" ", "\t", "\n", "\r"]
+        return char in WHITE_SPACES
 
     def _skip_white_spaces(self) -> None:
         while self.index < len(self.content) and self._is_white_space(self._get_current_char()):
@@ -47,15 +51,15 @@ class JsonParser:
             self.index += 1
             self._skip_white_spaces()
             while self._get_current_char() != '"':
-                if self._get_current_char() == "\\":
+                if self._get_current_char() == "\\":  # Check for illegal backslash
                     next = self._get_next_char()
-                    if next in ['"', "\\", "/", "b", "f", "n", "r", "t"]:
+                    if next in VALID_BACKSLASH_ESCAPE:
                         parsed_string += next
                         self.index += 1
-                    elif next == "u":  # Chcek of hexadecimal
+                    elif next == "u":
                         hex_digits = ""
 
-                        for offset in range(2, 6):  # self.i+2 → self.i+5
+                        for offset in range(2, 6):  # self.index+2 → self.index+5
                             char = self.content[self.index + offset]
                             if not self._is_hexadecimal(char):
                                 raise JsonException("JSON illegal Unicode escape sequence")
@@ -63,6 +67,8 @@ class JsonParser:
 
                         parsed_string += chr(int(hex_digits, 16))
                         self.index += 5
+                    else:
+                        raise JsonException("JSON illegal backslash")
                 else:
                     if self._get_current_char() == "\t":
                         raise JsonException("JSON tab character in string")
@@ -178,7 +184,7 @@ class JsonParser:
         if keyword == "null":
             raise JsonException("JSON missing value")
 
-    def _parse_json(self) -> str | dict[str, str] | int | float | bool | None:
+    def _parse_json(self) -> str | int | float | dict[str, str] | list[Any] | bool | None:
         parsed_json = self._parse_string()
         if parsed_json is None:
             parsed_json = self._parse_number()
