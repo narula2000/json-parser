@@ -1,3 +1,6 @@
+from typing import Any
+
+
 class JsonException(Exception):
     def __init__(self, message: str) -> None:
         self.message = message
@@ -38,16 +41,16 @@ class JsonParser:
             return False
 
     def _parse_string(self) -> str | None:
-        parsed_json = None
+        parsed_string = None
         if self._get_current_char() == '"':
-            parsed_json = ""
+            parsed_string = ""
             self.index += 1
             self._skip_white_spaces()
             while self._get_current_char() != '"':
                 if self._get_current_char() == "\\":
                     next = self._get_next_char()
                     if next in ['"', "\\", "/", "b", "f", "n", "r", "t"]:
-                        parsed_json += next
+                        parsed_string += next
                         self.index += 1
                     elif next == "u":  # Chcek of hexadecimal
                         hex_digits = ""
@@ -58,7 +61,7 @@ class JsonParser:
                                 raise JsonException("JSON illegal Unicode escape sequence")
                             hex_digits += char
 
-                        parsed_json += chr(int(hex_digits, 16))
+                        parsed_string += chr(int(hex_digits, 16))
                         self.index += 5
                 else:
                     if self._get_current_char() == "\t":
@@ -66,10 +69,10 @@ class JsonParser:
                     elif self._get_current_char() == "\n":
                         raise JsonException("JSON new line character in string")
                     else:
-                        parsed_json += self._get_current_char()
+                        parsed_string += self._get_current_char()
                 self.index += 1
             self.index += 1
-        return parsed_json
+        return parsed_string
 
     def _parse_number(self) -> int | float | None:
         start = self.index
@@ -121,7 +124,7 @@ class JsonParser:
             self.index += 1
             self._skip_white_spaces()
 
-            parsed_json = {}
+            parsed_object = {}
             init = True
 
             while self._get_current_char() != "}":
@@ -135,11 +138,11 @@ class JsonParser:
                 self._process_colon()
                 self._skip_white_spaces()
                 value = self._parse_json()
-                parsed_json[key] = value
+                parsed_object[key] = value
                 self._skip_white_spaces()
                 init = False
             self.index += 1
-            return parsed_json
+            return parsed_object
 
     def _parse_keyword(self, keyword: str, value: bool | None) -> bool | None:
         to_check_keyword = self.content[self.index : self.index + len(keyword)]
