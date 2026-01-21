@@ -41,5 +41,5 @@ if __name__ == "__main__":
     import sys
 
     # This ensure we can parse high nested JSON
-    sys.setrecursionlimit(1_000_000)
+    sys.setrecursionlimit(1_000)
     main(sys.argv[1:])
