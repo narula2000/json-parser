@@ -30,7 +30,6 @@ def main(argv=None):
 
             print(f"Prased: {file}")
             print(parsed_json)
-            print()
 
     sys.exit(0)
 
@@ -38,4 +37,6 @@ def main(argv=None):
 if __name__ == "__main__":
     import sys
 
+    # This ensure we can parse high nested JSON
+    sys.setrecursionlimit(1_000_000)
     main(sys.argv[1:])
