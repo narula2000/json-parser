@@ -71,6 +71,41 @@ class JsonParser:
             self.index += 1
         return parsed_json
 
+    def _parse_number(self) -> int | float | None:
+        start = self.index
+
+        if self._get_current_char() == "-":
+            self.index += 1
+
+        if self._get_current_char() == "0":
+            self.index += 1
+        elif self._get_current_char().isnumeric():
+            self.index += 1
+            while self._get_current_char().isnumeric():
+                self.index += 1
+
+        if self._get_current_char() == ".":
+            self.index += 1
+            while self._get_current_char().isnumeric():
+                self.index += 1
+
+        if self._get_current_char().lower() == "e":
+            self.index += 1
+            if self._get_current_char() in ["-", "+"]:
+                self.index += 1
+            while self._get_current_char().isnumeric():
+                self.index += 1
+
+        if self.index > start:
+            number = self.content[start : self.index]
+
+            try:
+                number = float(number)
+            except ValueError:
+                raise JsonException("JSON invlaid number")
+
+            return int(number) if number % 1 == 0 else number
+
     def _process_comma(self) -> None:
         if self._get_current_char() != ",":
             raise JsonException("JSON expected ','")
@@ -106,10 +141,26 @@ class JsonParser:
             self.index += 1
             return parsed_json
 
-    def _parse_json(self) -> str | dict[str, str] | None:
+    def _parse_keyword(self, keyword: str, value: bool | None) -> bool | None:
+        to_check_keyword = self.content[self.index : self.index + len(keyword)]
+        if to_check_keyword == keyword:
+            self.index += len(keyword)
+            return value
+        if keyword == "null":
+            raise JsonException("JSON missing value")
+
+    def _parse_json(self) -> str | dict[str, str] | int | float | bool | None:
         parsed_json = self._parse_string()
         if parsed_json is None:
+            parsed_json = self._parse_number()
+        if parsed_json is None:
             parsed_json = self._parse_object()
+        if parsed_json is None:
+            parsed_json = self._parse_keyword(keyword="true", value=True)
+        if parsed_json is None:
+            parsed_json = self._parse_keyword(keyword="false", value=False)
+        if parsed_json is None:
+            parsed_json = self._parse_keyword(keyword="null", value=None)
 
         return parsed_json
 
