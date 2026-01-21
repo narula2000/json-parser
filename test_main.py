@@ -33,7 +33,6 @@ class TestStep1:
         assert pytest_wrapped_e.value.code == 1
 
 
-@pytest.mark.skip(reason="Not part of the scope")
 class TestStep2:
     TEST_DIR = "tests/step2"
 
