@@ -2,26 +2,13 @@ import argparse
 import os
 import sys
 
+from json_parser import JsonException, JsonParser
+
 
 def setup_parser(arguments=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("files", metavar="FILE", default="", type=str, nargs="*")
     return parser.parse_args(arguments)
-
-
-class JsonExpcetion(Exception):
-    pass
-
-
-class JsonParser:
-    def __init__(self, content: str | None) -> None:
-        self.content = content or None
-        self.index = 0
-
-    def parse(self):
-        if not self.content:
-            raise JsonExpcetion("No content provided")
-        return 0
 
 
 def main(argv=None):
@@ -35,8 +22,9 @@ def main(argv=None):
                 content: str | None = reader.read()
 
             try:
-                parsed_json = JsonParser(content=content)
-            except JsonExpcetion as e:
+                json_parser = JsonParser(content=content)
+                parsed_json = json_parser.parse()
+            except JsonException as e:
                 print(e)
                 sys.exit(1)
 
