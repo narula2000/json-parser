@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Any
 
 
@@ -9,7 +10,29 @@ class JsonException(Exception):
         return self.message
 
 
-class JsonParser:
+class ParseContext(ABC):
+    @abstractmethod
+    def _get_current_char(self) -> str:
+        pass
+
+    @abstractmethod
+    def _get_next_char(self) -> str:
+        pass
+
+    @abstractmethod
+    def _increment(self) -> None:
+        pass
+
+    @abstractmethod
+    def _get_index(self) -> int:
+        pass
+
+    @abstractmethod
+    def _get_content(self) -> str:
+        pass
+
+
+class JsonParser(ParseContext):
     def __init__(self, content: str | None) -> None:
         if not content:
             raise JsonException("No content provided")
@@ -31,6 +54,15 @@ class JsonParser:
         if self.index < len(self.content):
             return self.content[self.index + 1]
         raise IndexError
+
+    def _increment(self) -> None:
+        self.index += 1
+
+    def _get_index(self) -> int:
+        return self.index
+
+    def _get_content(self) -> str:
+        return self.content
 
     def _parse_json(self) -> str | int | float | dict[str, str] | list[Any] | bool | None:
         parsed_json = self.string_parser.parse()
@@ -70,18 +102,18 @@ class JsonParser:
 
 
 class WhiteSpaceParser:
-    def __init__(self, json_parser: JsonParser) -> None:
-        self.json_parser = json_parser
+    def __init__(self, ctx: ParseContext) -> None:
+        self.ctx = ctx
         self.white_spaces = [" ", "\t", "\n", "\r"]
 
     def _is_white_space(self, char: str) -> bool:
         return char in self.white_spaces
 
     def parse(self) -> None:
-        while self.json_parser.index < len(self.json_parser.content) and self._is_white_space(
-            self.json_parser._get_current_char()
+        while self.ctx._get_index() < len(self.ctx._get_content()) and self._is_white_space(
+            self.ctx._get_current_char()
         ):
-            self.json_parser.index += 1
+            self.ctx._increment()
 
 
 class StringParser:
