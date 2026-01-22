@@ -39,6 +39,10 @@ class ParseContext(ABC):
     def _slice_content(self, start: int, end: int) -> str:
         pass
 
+    @abstractmethod
+    def _parse_json(self) -> str | int | float | dict[str, str] | list[Any] | bool | None:
+        pass
+
 
 class JsonParser(ParseContext):
     def __init__(self, content: str | None) -> None:
@@ -237,41 +241,41 @@ class KeywordParser:
 
 
 class ArraryParser:
-    def __init__(self, json_parser: JsonParser) -> None:
-        self.json_parser = json_parser
-        self.white_space_parser = WhiteSpaceParser(json_parser)
+    def __init__(self, ctx: ParseContext) -> None:
+        self.ctx = ctx
+        self.white_space_parser = WhiteSpaceParser(ctx)
 
     def _process_comma(self) -> None:
-        if self.json_parser._get_current_char() != ",":
+        if self.ctx._get_current_char() != ",":
             raise JsonException("JSON expected ','")
-        self.json_parser.index += 1
+        self.ctx._increment()
 
     def _process_colon(self) -> None:
-        if self.json_parser._get_current_char() != ":":
+        if self.ctx._get_current_char() != ":":
             raise JsonException("JSON expected ':'")
-        self.json_parser.index += 1
+        self.ctx._increment()
 
     def parse(self) -> list[Any] | None:
-        if self.json_parser._get_current_char() == "[":
-            self.json_parser.index += 1
+        if self.ctx._get_current_char() == "[":
+            self.ctx._increment()
             self.white_space_parser.parse()
 
             array = []
             init = True
 
             try:
-                while self.json_parser._get_current_char() != "]":
+                while self.ctx._get_current_char() != "]":
                     if not init:
                         self._process_comma()
                         self.white_space_parser.parse()
-                    value = self.json_parser._parse_json()
+                    value = self.ctx._parse_json()
                     self.white_space_parser.parse()
                     array.append(value)
                     init = False
             except IndexError:
                 raise JsonException("JSON missing closing array")
 
-            self.json_parser.index += 1
+            self.ctx._increment()
 
             return array
 
