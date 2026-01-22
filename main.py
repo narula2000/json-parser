@@ -2,7 +2,8 @@ import argparse
 import os
 import sys
 
-from json_parser import JsonException, JsonParser
+from parsers.exceptions import JsonException
+from parsers.json_parser import JsonParser
 
 
 def setup_parser(arguments=None):
