@@ -20,7 +20,7 @@ class ParseContext(ABC):
         pass
 
     @abstractmethod
-    def _increment(self) -> None:
+    def _increment(self, n: int = 1) -> None:
         pass
 
     @abstractmethod
@@ -29,6 +29,10 @@ class ParseContext(ABC):
 
     @abstractmethod
     def _get_content(self) -> str:
+        pass
+
+    @abstractmethod
+    def _peek_content(self, n: int) -> str:
         pass
 
 
@@ -55,14 +59,17 @@ class JsonParser(ParseContext):
             return self.content[self.index + 1]
         raise IndexError
 
-    def _increment(self) -> None:
-        self.index += 1
+    def _increment(self, n: int = 1) -> None:
+        self.index += n
 
     def _get_index(self) -> int:
         return self.index
 
     def _get_content(self) -> str:
         return self.content
+
+    def _peek_content(self, n: int) -> str:
+        return self.content[n]
 
     def _parse_json(self) -> str | int | float | dict[str, str] | list[Any] | bool | None:
         parsed_json = self.string_parser.parse()
@@ -117,9 +124,9 @@ class WhiteSpaceParser:
 
 
 class StringParser:
-    def __init__(self, json_parser: JsonParser) -> None:
-        self.json_parser = json_parser
-        self.white_space_parser = WhiteSpaceParser(json_parser)
+    def __init__(self, ctx: ParseContext) -> None:
+        self.ctx = ctx
+        self.white_space_parser = WhiteSpaceParser(ctx)
         self.valid_backslash_escape = ['"', "\\", "/", "b", "f", "n", "r", "t"]
 
     def _is_hexadecimal(self, char: str) -> bool:
@@ -131,38 +138,39 @@ class StringParser:
 
     def parse(self) -> str | None:
         parsed_string = None
-        if self.json_parser._get_current_char() == '"':
+        if self.ctx._get_current_char() == '"':
             parsed_string = ""
-            self.json_parser.index += 1
+            self.ctx._increment()
             self.white_space_parser.parse()
-            while self.json_parser._get_current_char() != '"':
-                if self.json_parser._get_current_char() == "\\":  # Check for illegal backslash
-                    next = self.json_parser._get_next_char()
+            while self.ctx._get_current_char() != '"':
+                if self.ctx._get_current_char() == "\\":  # Check for illegal backslash
+                    next = self.ctx._get_next_char()
                     if next in self.valid_backslash_escape:
                         parsed_string += next
-                        self.json_parser.index += 1
+                        self.ctx._increment()
                     elif next == "u":
                         hex_digits = ""
 
                         for offset in range(2, 6):  # self.index+2 → self.index+5
-                            char = self.json_parser.content[self.json_parser.index + offset]
+                            adjusted_offset = self.ctx._get_index() + offset
+                            char = self.ctx._peek_content(adjusted_offset)
                             if not self._is_hexadecimal(char):
                                 raise JsonException("JSON illegal Unicode escape sequence")
                             hex_digits += char
 
                         parsed_string += chr(int(hex_digits, 16))
-                        self.json_parser.index += 5
+                        self.ctx._increment(5)
                     else:
                         raise JsonException("JSON illegal backslash")
                 else:
-                    if self.json_parser._get_current_char() == "\t":
+                    if self.ctx._get_current_char() == "\t":
                         raise JsonException("JSON tab character in string")
-                    elif self.json_parser._get_current_char() == "\n":
+                    elif self.ctx._get_current_char() == "\n":
                         raise JsonException("JSON new line character in string")
                     else:
-                        parsed_string += self.json_parser._get_current_char()
-                self.json_parser.index += 1
-            self.json_parser.index += 1
+                        parsed_string += self.ctx._get_current_char()
+                self.ctx._increment()
+            self.ctx._increment()
         return parsed_string
 
 
