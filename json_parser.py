@@ -35,6 +35,10 @@ class ParseContext(ABC):
     def _peek_content(self, n: int) -> str:
         pass
 
+    @abstractmethod
+    def _slice_content(self, start: int, end: int) -> str:
+        pass
+
 
 class JsonParser(ParseContext):
     def __init__(self, content: str | None) -> None:
@@ -70,6 +74,9 @@ class JsonParser(ParseContext):
 
     def _peek_content(self, n: int) -> str:
         return self.content[n]
+
+    def _slice_content(self, start: int, end: int) -> str:
+        return self.content[start:end]
 
     def _parse_json(self) -> str | int | float | dict[str, str] | list[Any] | bool | None:
         parsed_json = self.string_parser.parse()
@@ -175,36 +182,36 @@ class StringParser:
 
 
 class NumberParser:
-    def __init__(self, json_parser: JsonParser) -> None:
-        self.json_parser = json_parser
+    def __init__(self, ctx: ParseContext) -> None:
+        self.ctx = ctx
 
     def parse(self) -> int | float | None:
-        start = self.json_parser.index
+        start = self.ctx._get_index()
 
-        if self.json_parser._get_current_char() == "-":
-            self.json_parser.index += 1
+        if self.ctx._get_current_char() == "-":
+            self.ctx._increment()
 
-        if self.json_parser._get_current_char() == "0":
-            self.json_parser.index += 1
-        elif self.json_parser._get_current_char().isnumeric():
-            self.json_parser.index += 1
-            while self.json_parser._get_current_char().isnumeric():
-                self.json_parser.index += 1
+        if self.ctx._get_current_char() == "0":
+            self.ctx._increment()
+        elif self.ctx._get_current_char().isnumeric():
+            self.ctx._increment()
+            while self.ctx._get_current_char().isnumeric():
+                self.ctx._increment()
 
-        if self.json_parser._get_current_char() == ".":
-            self.json_parser.index += 1
-            while self.json_parser._get_current_char().isnumeric():
-                self.json_parser.index += 1
+        if self.ctx._get_current_char() == ".":
+            self.ctx._increment()
+            while self.ctx._get_current_char().isnumeric():
+                self.ctx._increment()
 
-        if self.json_parser._get_current_char().lower() == "e":
-            self.json_parser.index += 1
-            if self.json_parser._get_current_char() in ["-", "+"]:
-                self.json_parser.index += 1
-            while self.json_parser._get_current_char().isnumeric():
-                self.json_parser.index += 1
+        if self.ctx._get_current_char().lower() == "e":
+            self.ctx._increment()
+            if self.ctx._get_current_char() in ["-", "+"]:
+                self.ctx._increment()
+            while self.ctx._get_current_char().isnumeric():
+                self.ctx._increment()
 
-        if self.json_parser.index > start:
-            number = self.json_parser.content[start : self.json_parser.index]
+        if self.ctx._get_index() > start:
+            number = self.ctx._slice_content(start=start, end=self.ctx._get_index())
 
             try:
                 number = float(number)
