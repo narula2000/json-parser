@@ -16,12 +16,6 @@ class JsonParser(ParseContext):
             raise JsonException("No content provided")
         self.content: str = content
         self.index: int = 0
-        self.white_space_parser = WhiteSpaceParser(self)
-        self.string_parser = StringParser(self)
-        self.number_parser = NumberParser(self)
-        self.keyword_parser = KeywordParser(self)
-        self.array_parser = ArrayParser(self)
-        self.object_parser = ObjectParser(self)
 
     def _get_current_char(self) -> str:
         if self.index < len(self.content):
@@ -49,19 +43,19 @@ class JsonParser(ParseContext):
         return self.content[start:end]
 
     def _parse_json(self) -> str | int | float | dict[str, str] | list[Any] | bool | None:
-        parsed_json = self.string_parser.parse()
+        parsed_json = StringParser(self).parse()
         if parsed_json is None:
-            parsed_json = self.number_parser.parse()
+            parsed_json = NumberParser(self).parse()
         if parsed_json is None:
-            parsed_json = self.object_parser.parse()
+            parsed_json = ObjectParser(self).parse()
         if parsed_json is None:
-            parsed_json = self.array_parser.parse()
+            parsed_json = ArrayParser(self).parse()
         if parsed_json is None:
-            parsed_json = self.keyword_parser.parse(keyword="true", value=True)
+            parsed_json = KeywordParser(self).parse(keyword="true", value=True)
         if parsed_json is None:
-            parsed_json = self.keyword_parser.parse(keyword="false", value=False)
+            parsed_json = KeywordParser(self).parse(keyword="false", value=False)
         if parsed_json is None:
-            parsed_json = self.keyword_parser.parse(keyword="null", value=None)
+            parsed_json = KeywordParser(self).parse(keyword="null", value=None)
 
         return parsed_json
 
@@ -69,14 +63,14 @@ class JsonParser(ParseContext):
         if not self.content:
             raise JsonException("No content provided")
 
-        self.white_space_parser.parse()
+        WhiteSpaceParser(self).parse()
         if self._get_current_char() not in ["[", "{"]:
             raise JsonException("JSON need to start with array or object")
 
         parsed_json = self._parse_json()
 
         try:
-            self.white_space_parser.parse()
+            WhiteSpaceParser(self).parse()
             self._get_current_char()
             raise JsonException("JSON contains extra characters after closing")
         except IndexError:
