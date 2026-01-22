@@ -21,6 +21,8 @@ class JsonParser:
         self.index: int = 0
         self.white_space_parser = WhiteSpaceParser(self)
         self.string_parser = StringParser(self)
+        self.number_parser = NumberParser(self)
+        self.keyword_parser = KeywordParser(self)
 
     def _get_current_char(self) -> str:
         if self.index < len(self.content):
@@ -31,41 +33,6 @@ class JsonParser:
         if self.index < len(self.content):
             return self.content[self.index + 1]
         raise IndexError
-
-    def _parse_number(self) -> int | float | None:
-        start = self.index
-
-        if self._get_current_char() == "-":
-            self.index += 1
-
-        if self._get_current_char() == "0":
-            self.index += 1
-        elif self._get_current_char().isnumeric():
-            self.index += 1
-            while self._get_current_char().isnumeric():
-                self.index += 1
-
-        if self._get_current_char() == ".":
-            self.index += 1
-            while self._get_current_char().isnumeric():
-                self.index += 1
-
-        if self._get_current_char().lower() == "e":
-            self.index += 1
-            if self._get_current_char() in ["-", "+"]:
-                self.index += 1
-            while self._get_current_char().isnumeric():
-                self.index += 1
-
-        if self.index > start:
-            number = self.content[start : self.index]
-
-            try:
-                number = float(number)
-            except ValueError:
-                raise JsonException("JSON invlaid number")
-
-            return int(number) if number % 1 == 0 else number
 
     def _process_comma(self) -> None:
         if self._get_current_char() != ",":
@@ -128,28 +95,20 @@ class JsonParser:
 
             return array
 
-    def _parse_keyword(self, keyword: str, value: bool | None) -> bool | None:
-        to_check_keyword = self.content[self.index : self.index + len(keyword)]
-        if to_check_keyword == keyword:
-            self.index += len(keyword)
-            return value
-        if keyword == "null":
-            raise JsonException("JSON missing value")
-
     def _parse_json(self) -> str | int | float | dict[str, str] | list[Any] | bool | None:
         parsed_json = self.string_parser.parse()
         if parsed_json is None:
-            parsed_json = self._parse_number()
+            parsed_json = self.number_parser.parse()
         if parsed_json is None:
             parsed_json = self._parse_object()
         if parsed_json is None:
             parsed_json = self._parse_array()
         if parsed_json is None:
-            parsed_json = self._parse_keyword(keyword="true", value=True)
+            parsed_json = self.keyword_parser.parse(keyword="true", value=True)
         if parsed_json is None:
-            parsed_json = self._parse_keyword(keyword="false", value=False)
+            parsed_json = self.keyword_parser.parse(keyword="false", value=False)
         if parsed_json is None:
-            parsed_json = self._parse_keyword(keyword="null", value=None)
+            parsed_json = self.keyword_parser.parse(keyword="null", value=None)
 
         return parsed_json
 
@@ -234,3 +193,56 @@ class StringParser:
                 self.json_parser.index += 1
             self.json_parser.index += 1
         return parsed_string
+
+
+class NumberParser:
+    def __init__(self, json_parser: JsonParser) -> None:
+        self.json_parser = json_parser
+
+    def parse(self) -> int | float | None:
+        start = self.json_parser.index
+
+        if self.json_parser._get_current_char() == "-":
+            self.json_parser.index += 1
+
+        if self.json_parser._get_current_char() == "0":
+            self.json_parser.index += 1
+        elif self.json_parser._get_current_char().isnumeric():
+            self.json_parser.index += 1
+            while self.json_parser._get_current_char().isnumeric():
+                self.json_parser.index += 1
+
+        if self.json_parser._get_current_char() == ".":
+            self.json_parser.index += 1
+            while self.json_parser._get_current_char().isnumeric():
+                self.json_parser.index += 1
+
+        if self.json_parser._get_current_char().lower() == "e":
+            self.json_parser.index += 1
+            if self.json_parser._get_current_char() in ["-", "+"]:
+                self.json_parser.index += 1
+            while self.json_parser._get_current_char().isnumeric():
+                self.json_parser.index += 1
+
+        if self.json_parser.index > start:
+            number = self.json_parser.content[start : self.json_parser.index]
+
+            try:
+                number = float(number)
+            except ValueError:
+                raise JsonException("JSON invlaid number")
+
+            return int(number) if number % 1 == 0 else number
+
+
+class KeywordParser:
+    def __init__(self, json_parser: JsonParser) -> None:
+        self.json_parser = json_parser
+
+    def parse(self, keyword: str, value: bool | None) -> bool | None:
+        to_check_keyword = self.json_parser.content[self.json_parser.index : self.json_parser.index + len(keyword)]
+        if to_check_keyword == keyword:
+            self.json_parser.index += len(keyword)
+            return value
+        if keyword == "null":
+            raise JsonException("JSON missing value")
