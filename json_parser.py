@@ -281,30 +281,30 @@ class ArraryParser:
 
 
 class ObjectParser:
-    def __init__(self, json_parser: JsonParser) -> None:
-        self.json_parser = json_parser
-        self.white_space_parser = WhiteSpaceParser(json_parser)
-        self.string_parser = StringParser(json_parser)
+    def __init__(self, ctx: ParseContext) -> None:
+        self.ctx = ctx
+        self.white_space_parser = WhiteSpaceParser(ctx)
+        self.string_parser = StringParser(ctx)
 
     def _process_comma(self) -> None:
-        if self.json_parser._get_current_char() != ",":
+        if self.ctx._get_current_char() != ",":
             raise JsonException("JSON expected ','")
-        self.json_parser.index += 1
+        self.ctx._increment()
 
     def _process_colon(self) -> None:
-        if self.json_parser._get_current_char() != ":":
+        if self.ctx._get_current_char() != ":":
             raise JsonException("JSON expected ':'")
-        self.json_parser.index += 1
+        self.ctx._increment()
 
     def parse(self) -> dict[str, str] | None:
-        if self.json_parser._get_current_char() == "{":
-            self.json_parser.index += 1
+        if self.ctx._get_current_char() == "{":
+            self.ctx._increment()
             self.white_space_parser.parse()
 
             parsed_object = {}
             init = True
             try:
-                while self.json_parser._get_current_char() != "}":
+                while self.ctx._get_current_char() != "}":
                     if not init:
                         self.white_space_parser.parse()
                         self._process_comma()
@@ -314,11 +314,11 @@ class ObjectParser:
                     self.white_space_parser.parse()
                     self._process_colon()
                     self.white_space_parser.parse()
-                    value = self.json_parser._parse_json()
+                    value = self.ctx._parse_json()
                     parsed_object[key] = value
                     self.white_space_parser.parse()
                     init = False
             except IndexError:
                 raise JsonException("JSON missing closing object")
-            self.json_parser.index += 1
+            self.ctx._increment()
             return parsed_object
