@@ -222,13 +222,15 @@ class NumberParser:
 
 
 class KeywordParser:
-    def __init__(self, json_parser: JsonParser) -> None:
-        self.json_parser = json_parser
+    def __init__(self, ctx: ParseContext) -> None:
+        self.ctx = ctx
 
     def parse(self, keyword: str, value: bool | None) -> bool | None:
-        to_check_keyword = self.json_parser.content[self.json_parser.index : self.json_parser.index + len(keyword)]
+        start = self.ctx._get_index()
+        end = self.ctx._get_index() + len(keyword)
+        to_check_keyword = self.ctx._slice_content(start=start, end=end)
         if to_check_keyword == keyword:
-            self.json_parser.index += len(keyword)
+            self.ctx._increment(len(keyword))
             return value
         if keyword == "null":
             raise JsonException("JSON missing value")
