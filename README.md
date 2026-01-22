@@ -21,7 +21,7 @@ The JSON validation files can be fetched from [here](http://www.json.org/JSON_ch
 This file corresponds to the "TooDeep" JSON test case, which is designed to fail due to extremely deep nesting that exceeds typical recursion limits. In this implementation, we explicitly increase the recursion limit:
 
 ```python
-sys.setrecursionlimit(1_000_000)
+sys.setrecursionlimit(100)
 ```
 
 As a result, `fail18.json` no longer fails for the intended reason and does not provide meaningful validation for this parser.
