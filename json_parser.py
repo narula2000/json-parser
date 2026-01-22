@@ -1,10 +1,6 @@
 from typing import Any
 
 
-WHITE_SPACES = [" ", "\t", "\n", "\r"]
-VALID_BACKSLASH_ESCAPE = ['"', "\\", "/", "b", "f", "n", "r", "t"]
-
-
 class JsonException(Exception):
     def __init__(self, message: str) -> None:
         self.message = message
@@ -23,6 +19,7 @@ class JsonParser:
         self.string_parser = StringParser(self)
         self.number_parser = NumberParser(self)
         self.keyword_parser = KeywordParser(self)
+        self.array_parser = ArraryParser(self)
 
     def _get_current_char(self) -> str:
         if self.index < len(self.content):
@@ -71,30 +68,6 @@ class JsonParser:
             self.index += 1
             return parsed_object
 
-    def _parse_array(self) -> list[Any] | None:
-        if self._get_current_char() == "[":
-            self.index += 1
-            self.white_space_parser.parse()
-
-            array = []
-            init = True
-
-            try:
-                while self._get_current_char() != "]":
-                    if not init:
-                        self._process_comma()
-                        self.white_space_parser.parse()
-                    value = self._parse_json()
-                    self.white_space_parser.parse()
-                    array.append(value)
-                    init = False
-            except IndexError:
-                raise JsonException("JSON missing closing array")
-
-            self.index += 1
-
-            return array
-
     def _parse_json(self) -> str | int | float | dict[str, str] | list[Any] | bool | None:
         parsed_json = self.string_parser.parse()
         if parsed_json is None:
@@ -102,7 +75,7 @@ class JsonParser:
         if parsed_json is None:
             parsed_json = self._parse_object()
         if parsed_json is None:
-            parsed_json = self._parse_array()
+            parsed_json = self.array_parser.parse()
         if parsed_json is None:
             parsed_json = self.keyword_parser.parse(keyword="true", value=True)
         if parsed_json is None:
@@ -135,9 +108,10 @@ class JsonParser:
 class WhiteSpaceParser:
     def __init__(self, json_parser: JsonParser) -> None:
         self.json_parser = json_parser
+        self.white_spaces = [" ", "\t", "\n", "\r"]
 
     def _is_white_space(self, char: str) -> bool:
-        return char in WHITE_SPACES
+        return char in self.white_spaces
 
     def parse(self) -> None:
         while self.json_parser.index < len(self.json_parser.content) and self._is_white_space(
@@ -150,6 +124,7 @@ class StringParser:
     def __init__(self, json_parser: JsonParser) -> None:
         self.json_parser = json_parser
         self.white_space_parser = WhiteSpaceParser(json_parser)
+        self.valid_backslash_escape = ['"', "\\", "/", "b", "f", "n", "r", "t"]
 
     def _is_hexadecimal(self, char: str) -> bool:
         try:
@@ -167,7 +142,7 @@ class StringParser:
             while self.json_parser._get_current_char() != '"':
                 if self.json_parser._get_current_char() == "\\":  # Check for illegal backslash
                     next = self.json_parser._get_next_char()
-                    if next in VALID_BACKSLASH_ESCAPE:
+                    if next in self.valid_backslash_escape:
                         parsed_string += next
                         self.json_parser.index += 1
                     elif next == "u":
@@ -246,3 +221,43 @@ class KeywordParser:
             return value
         if keyword == "null":
             raise JsonException("JSON missing value")
+
+
+class ArraryParser:
+    def __init__(self, json_parser: JsonParser) -> None:
+        self.json_parser = json_parser
+        self.white_space_parser = WhiteSpaceParser(json_parser)
+
+    def _process_comma(self) -> None:
+        if self.json_parser._get_current_char() != ",":
+            raise JsonException("JSON expected ','")
+        self.json_parser.index += 1
+
+    def _process_colon(self) -> None:
+        if self.json_parser._get_current_char() != ":":
+            raise JsonException("JSON expected ':'")
+        self.json_parser.index += 1
+
+    def parse(self) -> list[Any] | None:
+        if self.json_parser._get_current_char() == "[":
+            self.json_parser.index += 1
+            self.white_space_parser.parse()
+
+            array = []
+            init = True
+
+            try:
+                while self.json_parser._get_current_char() != "]":
+                    if not init:
+                        self._process_comma()
+                        self.white_space_parser.parse()
+                    value = self.json_parser._parse_json()
+                    self.white_space_parser.parse()
+                    array.append(value)
+                    init = False
+            except IndexError:
+                raise JsonException("JSON missing closing array")
+
+            self.json_parser.index += 1
+
+            return array
