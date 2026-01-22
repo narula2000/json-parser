@@ -20,6 +20,7 @@ class JsonParser:
         self.number_parser = NumberParser(self)
         self.keyword_parser = KeywordParser(self)
         self.array_parser = ArraryParser(self)
+        self.object_parser = ObjectParser(self)
 
     def _get_current_char(self) -> str:
         if self.index < len(self.content):
@@ -31,49 +32,12 @@ class JsonParser:
             return self.content[self.index + 1]
         raise IndexError
 
-    def _process_comma(self) -> None:
-        if self._get_current_char() != ",":
-            raise JsonException("JSON expected ','")
-        self.index += 1
-
-    def _process_colon(self) -> None:
-        if self._get_current_char() != ":":
-            raise JsonException("JSON expected ':'")
-        self.index += 1
-
-    def _parse_object(self) -> dict[str, str] | None:
-        if self._get_current_char() == "{":
-            self.index += 1
-            self.white_space_parser.parse()
-
-            parsed_object = {}
-            init = True
-            try:
-                while self._get_current_char() != "}":
-                    if not init:
-                        self.white_space_parser.parse()
-                        self._process_comma()
-                        self.white_space_parser.parse()
-
-                    key = self.string_parser.parse()
-                    self.white_space_parser.parse()
-                    self._process_colon()
-                    self.white_space_parser.parse()
-                    value = self._parse_json()
-                    parsed_object[key] = value
-                    self.white_space_parser.parse()
-                    init = False
-            except IndexError:
-                raise JsonException("JSON missing closing object")
-            self.index += 1
-            return parsed_object
-
     def _parse_json(self) -> str | int | float | dict[str, str] | list[Any] | bool | None:
         parsed_json = self.string_parser.parse()
         if parsed_json is None:
             parsed_json = self.number_parser.parse()
         if parsed_json is None:
-            parsed_json = self._parse_object()
+            parsed_json = self.object_parser.parse()
         if parsed_json is None:
             parsed_json = self.array_parser.parse()
         if parsed_json is None:
@@ -261,3 +225,47 @@ class ArraryParser:
             self.json_parser.index += 1
 
             return array
+
+
+class ObjectParser:
+    def __init__(self, json_parser: JsonParser) -> None:
+        self.json_parser = json_parser
+        self.white_space_parser = WhiteSpaceParser(json_parser)
+        self.string_parser = StringParser(json_parser)
+
+    def _process_comma(self) -> None:
+        if self.json_parser._get_current_char() != ",":
+            raise JsonException("JSON expected ','")
+        self.json_parser.index += 1
+
+    def _process_colon(self) -> None:
+        if self.json_parser._get_current_char() != ":":
+            raise JsonException("JSON expected ':'")
+        self.json_parser.index += 1
+
+    def parse(self) -> dict[str, str] | None:
+        if self.json_parser._get_current_char() == "{":
+            self.json_parser.index += 1
+            self.white_space_parser.parse()
+
+            parsed_object = {}
+            init = True
+            try:
+                while self.json_parser._get_current_char() != "}":
+                    if not init:
+                        self.white_space_parser.parse()
+                        self._process_comma()
+                        self.white_space_parser.parse()
+
+                    key = self.string_parser.parse()
+                    self.white_space_parser.parse()
+                    self._process_colon()
+                    self.white_space_parser.parse()
+                    value = self.json_parser._parse_json()
+                    parsed_object[key] = value
+                    self.white_space_parser.parse()
+                    init = False
+            except IndexError:
+                raise JsonException("JSON missing closing object")
+            self.json_parser.index += 1
+            return parsed_object
