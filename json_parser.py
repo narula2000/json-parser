@@ -44,6 +44,22 @@ class ParseContext(ABC):
         pass
 
 
+class SeperatorParser:
+    def __init__(self, ctx: ParseContext) -> None:
+        self.ctx = ctx
+
+    def process_comma(self) -> None:
+        pass
+        if self.ctx._get_current_char() != ",":
+            raise JsonException("JSON expected ','")
+        self.ctx._increment()
+
+    def process_colon(self) -> None:
+        if self.ctx._get_current_char() != ":":
+            raise JsonException("JSON expected ':'")
+        self.ctx._increment()
+
+
 class JsonParser(ParseContext):
     def __init__(self, content: str | None) -> None:
         if not content:
@@ -244,16 +260,7 @@ class ArraryParser:
     def __init__(self, ctx: ParseContext) -> None:
         self.ctx = ctx
         self.white_space_parser = WhiteSpaceParser(ctx)
-
-    def _process_comma(self) -> None:
-        if self.ctx._get_current_char() != ",":
-            raise JsonException("JSON expected ','")
-        self.ctx._increment()
-
-    def _process_colon(self) -> None:
-        if self.ctx._get_current_char() != ":":
-            raise JsonException("JSON expected ':'")
-        self.ctx._increment()
+        self.seperator_parser = SeperatorParser(ctx)
 
     def parse(self) -> list[Any] | None:
         if self.ctx._get_current_char() == "[":
@@ -266,7 +273,7 @@ class ArraryParser:
             try:
                 while self.ctx._get_current_char() != "]":
                     if not init:
-                        self._process_comma()
+                        self.seperator_parser.process_comma()
                         self.white_space_parser.parse()
                     value = self.ctx._parse_json()
                     self.white_space_parser.parse()
@@ -285,16 +292,7 @@ class ObjectParser:
         self.ctx = ctx
         self.white_space_parser = WhiteSpaceParser(ctx)
         self.string_parser = StringParser(ctx)
-
-    def _process_comma(self) -> None:
-        if self.ctx._get_current_char() != ",":
-            raise JsonException("JSON expected ','")
-        self.ctx._increment()
-
-    def _process_colon(self) -> None:
-        if self.ctx._get_current_char() != ":":
-            raise JsonException("JSON expected ':'")
-        self.ctx._increment()
+        self.seperator_parser = SeperatorParser(ctx)
 
     def parse(self) -> dict[str, str] | None:
         if self.ctx._get_current_char() == "{":
@@ -307,12 +305,12 @@ class ObjectParser:
                 while self.ctx._get_current_char() != "}":
                     if not init:
                         self.white_space_parser.parse()
-                        self._process_comma()
+                        self.seperator_parser.process_comma()
                         self.white_space_parser.parse()
 
                     key = self.string_parser.parse()
                     self.white_space_parser.parse()
-                    self._process_colon()
+                    self.seperator_parser.process_colon()
                     self.white_space_parser.parse()
                     value = self.ctx._parse_json()
                     parsed_object[key] = value
